@@ -278,6 +278,10 @@ int main(int argc, char *argv[]) {
     ///Boilerplate
     SDL_Window *window = SDL_CreateWindow("Runner", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           WIDTH + STAT_WIDTH, HEIGHT, (SDL_WINDOW_OPENGL + SDL_WINDOW_FULLSCREEN * 0));
+    if (!window) {
+            printf("win: %s\n", SDL_GetError());
+            return 228;
+    }
     SDL_Renderer *r = SDL_CreateRenderer(window, -1, (SDL_RENDERER_ACCELERATED));
     TTF_Init();
     SDL_Thread* frame_rate_thread;

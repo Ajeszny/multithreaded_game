@@ -1,0 +1,3 @@
+/cygdrive/d/Fuck Jetbrains/C/Multithread_game/playground/cmake-build-debug-cygwin/CMakeFiles/playground.dir
+/cygdrive/d/Fuck Jetbrains/C/Multithread_game/playground/cmake-build-debug-cygwin/CMakeFiles/edit_cache.dir
+/cygdrive/d/Fuck Jetbrains/C/Multithread_game/playground/cmake-build-debug-cygwin/CMakeFiles/rebuild_cache.dir

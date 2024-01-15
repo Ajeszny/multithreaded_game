@@ -5,6 +5,7 @@
 #include <SDL_ttf.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <SDL2/SDL_net.h>
 #define LAB_WIDTH 50
 #define LAB_HEIGHT 50
 #define PIXEL_SIZE 16
