@@ -49,8 +49,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "D:/Fuck Jetbrains/C/Multithread_game/playground/cmake-build-debug",
-		"source" : "D:/Fuck Jetbrains/C/Multithread_game/playground"
+		"build" : "D:/Fuck Jetbrains/C/Multithread_game/multithreaded_game/cmake-build-debug",
+		"source" : "D:/Fuck Jetbrains/C/Multithread_game/multithreaded_game"
 	},
 	"version" : 
 	{

@@ -115,7 +115,7 @@ int load_map(char *filename) {
 }
 
 int field_of_view() {
-    ///Lookin down
+    //Lookin down
     for (int i = 0; i < LAB_HEIGHT - game_info.beast.pos.y; ++i) {
         if (!(map[game_info.beast.pos.y + i][game_info.beast.pos.x].flags & 0x01) || !CHECK_PLAYER_COORDINATE(x)) {
             break;
@@ -128,7 +128,7 @@ int field_of_view() {
             return 1;
         }
     }
-    ///Lookin up
+    //Lookin up
     for (int i = 0; i < game_info.beast.pos.y; ++i) {
         if (!(map[game_info.beast.pos.y - i][game_info.beast.pos.x].flags & 0x01) || !CHECK_PLAYER_COORDINATE(x)) {
             break;
@@ -141,7 +141,7 @@ int field_of_view() {
             return 1;
         }
     }
-    ///Lookin right
+    //Lookin right
     for (int i = 0; i < LAB_WIDTH - game_info.beast.pos.x; ++i) {
         if (!(map[game_info.beast.pos.y][game_info.beast.pos.x + i].flags & 0x01) || !CHECK_PLAYER_COORDINATE(y)) {
             break;
@@ -154,7 +154,7 @@ int field_of_view() {
             return 1;
         }
     }
-    ///Lookin left
+    //Lookin left
     for (int i = 0; i < game_info.beast.pos.x; ++i) {
         if (!(map[game_info.beast.pos.y][game_info.beast.pos.x - i].flags & 0x01) || !CHECK_PLAYER_COORDINATE(y)) {
             break;
@@ -201,72 +201,42 @@ void move_beast() {
     }
 }
 
-
-player *init_game(int choice) {
-    game_info.treasures_remaining = 0;
-
-    for (int i = 0; i < LAB_HEIGHT; ++i) {
-        for (int j = 0; j < LAB_WIDTH; ++j) {
-            if (map[i][j].flags & 0x10 || map[i][j].flags & 0x20 || map[i][j].flags & 0x40) {
-                game_info.treasures_remaining++;
+///Layer of abstraction to enable future player input from client process
+int listen_players_input(void* data) {
+    IPaddress ip;
+    SDLNet_ResolveHost(&ip, NULL, 1337);
+    TCPsocket serv = SDLNet_TCP_Open(&ip);
+    TCPsocket client;
+    data_packet pdata;
+    time_t start = time(NULL);
+    while(1) {
+        client = SDLNet_TCP_Accept(serv);
+        if (!client) {
+            time_t end = time(NULL);
+            if ((end - start) > MS_IN_SECOND * 0.1) {
+                return -1;
             }
-            if (map[i][j].flags & 0x04) {
-                game_info.campsite_pos.y = i;
-                game_info.campsite_pos.x = j;
-            }
-            if (map[i][j].flags & 0x08) {
-                game_info.beast.pos.y = i;
-                game_info.beast.pos.x = j;
-            }
+            continue;
+        }
+        SDLNet_TCP_Recv(client, &pdata, sizeof(pdata));
+        SDLNet_TCP_Close(client);
+        break;
+    }
+    player* current = NULL;
+    for (int i = 0; i < 4; ++i) {
+        if (game_info.players[i].id_num == pdata.key) {
+            current = game_info.players+i;
+            break;
         }
     }
-
-    game_info.player1.is_active = 0;
-    game_info.player2.is_active = 0;
-    game_info.player3.is_active = 0;
-    game_info.player4.is_active = 0;
-    switch (choice) {
-        case P1:
-            game_info.player1.is_active = 1;
-            game_info.player1.bank = 0;
-            game_info.player1.deaths = 0;
-            game_info.player1.money = 0;
-            game_info.player1.can_kill_beast = 0;
-            game_info.player1.pos = game_info.campsite_pos;
-            return &game_info.player1;
-        case P2:
-            game_info.player2.is_active = 1;
-            game_info.player2.bank = 0;
-            game_info.player2.deaths = 0;
-            game_info.player2.money = 0;
-            game_info.player2.can_kill_beast = 0;
-            game_info.player2.pos = game_info.campsite_pos;
-            return &game_info.player2;
-        case P3:
-            game_info.player3.is_active = 1;
-            game_info.player3.bank = 0;
-            game_info.player3.deaths = 0;
-            game_info.player3.money = 0;
-            game_info.player3.can_kill_beast = 0;
-            game_info.player3.pos = game_info.campsite_pos;
-            return &game_info.player3;
-        case P4:
-            game_info.player4.is_active = 1;
-            game_info.player4.bank = 0;
-            game_info.player4.deaths = 0;
-            game_info.player4.money = 0;
-            game_info.player4.can_kill_beast = 0;
-            game_info.player4.pos = game_info.campsite_pos;
-            return &game_info.player4;
-        default:
-            return 0;
-
+    char response[99];
+    if (!current) {
+        strcpy(response, "Ur not invited go eat ass :3");
+        return -1;
     }
-}
 
-///Layer of abstraction to enable future player input from client process
-int listen_player_input(player* current) {
-    if (event.type == SDL_TEXTINPUT) move_player(current, &event);
+    if (event.type == SDL_TEXTINPUT) move_player(current, &pdata.e);
+    return 1;
 }
 
 ///Function to extend duration of a turn to 0.2 seconds
@@ -275,7 +245,7 @@ int frame_rate(void* data) {
 }
 
 int main(int argc, char *argv[]) {
-    ///Boilerplate
+    //Boilerplate
     SDL_Window *window = SDL_CreateWindow("Runner", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           WIDTH + STAT_WIDTH, HEIGHT, (SDL_WINDOW_OPENGL + SDL_WINDOW_FULLSCREEN * 0));
     if (!window) {
@@ -285,8 +255,9 @@ int main(int argc, char *argv[]) {
     SDL_Renderer *r = SDL_CreateRenderer(window, -1, (SDL_RENDERER_ACCELERATED));
     TTF_Init();
     SDL_Thread* frame_rate_thread;
+    SDLNet_Init();
 
-    ///RESOURCE LOADING
+    //RESOURCE LOADING
     load_map("Resource/map.bin");
     SDL_Texture *bricks = SDL_CreateTextureFromSurface(r, SDL_LoadBMP("Resource/wall.bmp"));
     SDL_Texture *bricks_background = SDL_CreateTextureFromSurface(r, SDL_LoadBMP("Resource/background.bmp"));
@@ -305,7 +276,7 @@ int main(int argc, char *argv[]) {
         return 228;
     }
 
-    ///Stat screen
+    //Stat screen
     SDL_Color text_color = {255, 255, 255};
     SDL_Surface *beast_surface = TTF_RenderText_Solid(font, "Wild beast", text_color);
     SDL_Texture *beast_message = SDL_CreateTextureFromSurface(r, beast_surface);
@@ -360,20 +331,49 @@ int main(int argc, char *argv[]) {
     stats2_message_container.h = TEXT_HEIGHT;
 
 
-    ///Init
-    int choice = 0;
+    //Init
+    int count = 0;
 
-    player *current = init_game(choice);
-    game_info.player1.texture = p1texture;
-    game_info.player2.texture = p2texture;
-    game_info.player3.texture = p3texture;
-    game_info.player4.texture = p4texture;
+    //player *current = init_game(choice);
+    while(count < 4) {
+        IPaddress ip;
+        SDLNet_ResolveHost(&ip, NULL, PORT);
+        TCPsocket serv = SDLNet_TCP_Open(&ip);
+        TCPsocket client;
+        client = SDLNet_TCP_Accept(serv);
+        if (!client) {
+            SDL_PollEvent(&event);
+            if (event.type == SDL_QUIT) {
+                SDLNet_TCP_Close(client);
+                SDLNet_TCP_Close(serv);
+                SDL_Quit();
+                SDLNet_Quit();
+                return 0;
+            }
+            if (event.key.keysym.sym == SDLK_SPACE) {
+                break;
+            }
+        }
+        SDLNet_TCP_Send(client, &count, sizeof(count));
+        game_info.players[count].id_num = count;
+        game_info.players[count].is_active = 1;
+        game_info.players[count].bank = 0;
+        game_info.players[count].deaths = 0;
+        game_info.players[count].money = 0;
+        game_info.players[count].can_kill_beast = 0;
+        game_info.players[count].pos = game_info.campsite_pos;
+        printf("Unit %i connected, space to start!", count);
+    }
+    game_info.players[0].texture = p1texture;
+    game_info.players[1].texture = p2texture;
+    game_info.players[2].texture = p3texture;
+    game_info.players[3].texture = p4texture;
 
-    while (current->bank < 500) {
+    while (1) {
         frame_rate_thread = SDL_CreateThread(frame_rate, "fr", 0);
         SDL_RenderClear(r);
 
-        ///Static text&stat screen image rendering
+        //Static text&stat screen image rendering
         SDL_RenderCopy(r, beast_message, 0, &beast_message_container);
         SDL_RenderCopy(r, beast, 0, &beast_descriptor);
         SDL_RenderCopy(r, treasure_message, 0, &treasure_message_container);
@@ -381,20 +381,20 @@ int main(int argc, char *argv[]) {
         SDL_RenderCopy(r, drop_message, 0, &drop_message_container);
         SDL_RenderCopy(r, drop, 0, &drop_descriptor);
 
-        sprintf(stats, "Collected treasure: %zu", current->money);
+//        sprintf(stats, "Collected treasure: %zu", current->money);
+//
+//        SDL_Surface *stat_surface = TTF_RenderText_Solid(font, stats, text_color);
+//        SDL_Texture *stat_message = SDL_CreateTextureFromSurface(r, stat_surface);
+//        SDL_RenderCopy(r, stat_message, 0, &stats1_message_container);
+//        SDL_DestroyTexture(stat_message);
+//        SDL_FreeSurface(stat_surface);
 
-        SDL_Surface *stat_surface = TTF_RenderText_Solid(font, stats, text_color);
-        SDL_Texture *stat_message = SDL_CreateTextureFromSurface(r, stat_surface);
-        SDL_RenderCopy(r, stat_message, 0, &stats1_message_container);
-        SDL_DestroyTexture(stat_message);
-        SDL_FreeSurface(stat_surface);
-
-        sprintf(stats, "Treasure in bank: %zu", current->bank);
-        stat_surface = TTF_RenderText_Solid(font, stats, text_color);
-        stat_message = SDL_CreateTextureFromSurface(r, stat_surface);
-        SDL_RenderCopy(r, stat_message, 0, &stats2_message_container);
-        SDL_DestroyTexture(stat_message);
-        SDL_FreeSurface(stat_surface);
+//        sprintf(stats, "Treasure in bank: %zu", current->bank);
+//        stat_surface = TTF_RenderText_Solid(font, stats, text_color);
+//        stat_message = SDL_CreateTextureFromSurface(r, stat_surface);
+//        SDL_RenderCopy(r, stat_message, 0, &stats2_message_container);
+//        SDL_DestroyTexture(stat_message);
+//        SDL_FreeSurface(stat_surface);
 
         for (int i = 0; i < LAB_HEIGHT; ++i) {
             for (int j = 0; j < LAB_WIDTH; ++j) {
@@ -433,54 +433,64 @@ int main(int argc, char *argv[]) {
         }
 
         SDL_Rect boundaries = {0, 0, 0, 0};
-        ///Beast rendering
+        //Beast rendering
         boundaries.y = game_info.beast.pos.y * PIXEL_SIZE;
         boundaries.x = game_info.beast.pos.x * PIXEL_SIZE;
         boundaries.h = PIXEL_SIZE;
         boundaries.w = PIXEL_SIZE;
         SDL_RenderCopy(r, beast, 0, &boundaries);
 
-        ///Player rendering
-        if (game_info.player1.is_active) {
-            boundaries.y = game_info.player1.pos.y * PIXEL_SIZE;
-            boundaries.x = game_info.player1.pos.x * PIXEL_SIZE;
+        //Player rendering
+        if (game_info.players[0].is_active) {
+            boundaries.y = game_info.players[0].pos.y * PIXEL_SIZE;
+            boundaries.x = game_info.players[0].pos.x * PIXEL_SIZE;
             boundaries.h = PIXEL_SIZE;
             boundaries.w = PIXEL_SIZE;
-            SDL_RenderCopy(r, game_info.player1.texture, 0, &boundaries);
+            SDL_RenderCopy(r, game_info.players[0].texture, 0, &boundaries);
         }
 
 
-        if (game_info.player2.is_active) {
-            boundaries.y = game_info.player2.pos.y * PIXEL_SIZE;
-            boundaries.x = game_info.player2.pos.x * PIXEL_SIZE;
+        if (game_info.players[1].is_active) {
+            boundaries.y = game_info.players[1].pos.y * PIXEL_SIZE;
+            boundaries.x = game_info.players[1].pos.x * PIXEL_SIZE;
             boundaries.h = PIXEL_SIZE;
             boundaries.w = PIXEL_SIZE;
-            SDL_RenderCopy(r, game_info.player2.texture, 0, &boundaries);
+            SDL_RenderCopy(r, game_info.players[1].texture, 0, &boundaries);
         }
 
 
-        if (game_info.player3.is_active) {
-            boundaries.y = game_info.player3.pos.y * PIXEL_SIZE;
-            boundaries.x = game_info.player3.pos.x * PIXEL_SIZE;
+        if (game_info.players[2].is_active) {
+            boundaries.y = game_info.players[2].pos.y * PIXEL_SIZE;
+            boundaries.x = game_info.players[2].pos.x * PIXEL_SIZE;
             boundaries.h = PIXEL_SIZE;
             boundaries.w = PIXEL_SIZE;
-            SDL_RenderCopy(r, game_info.player3.texture, 0, &boundaries);
+            SDL_RenderCopy(r, game_info.players[2].texture, 0, &boundaries);
         }
 
 
-        if (game_info.player4.is_active) {
-            boundaries.y = game_info.player4.pos.y * PIXEL_SIZE;
-            boundaries.x = game_info.player4.pos.x * PIXEL_SIZE;
+        if (game_info.players[3].is_active) {
+            boundaries.y = game_info.players[3].pos.y * PIXEL_SIZE;
+            boundaries.x = game_info.players[3].pos.x * PIXEL_SIZE;
             boundaries.h = PIXEL_SIZE;
             boundaries.w = PIXEL_SIZE;
-            SDL_RenderCopy(r, game_info.player4.texture, 0, &boundaries);
+            SDL_RenderCopy(r, game_info.players[3].texture, 0, &boundaries);
         }
 
         SDL_RenderPresent(r);
 
+        SDL_Thread* player_tredz[4];
+
+        for (int i = 0; i < count; ++i) {
+            char name [] = "Player_thread_n";
+            name[strlen(name) - 1] = i + '0';
+            player_tredz[i] = SDL_CreateThread(listen_players_input, name, NULL);
+        }
+
         SDL_PollEvent(&event);
         move_beast();
-        listen_player_input(current);
+        for (int i = 0; i < count; ++i) {
+            SDL_WaitThread(player_tredz[i], NULL);
+        }
 
         if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE) {
             return 0;

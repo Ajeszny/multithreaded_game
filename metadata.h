@@ -14,6 +14,7 @@
 #define STAT_WIDTH (WIDTH/2)
 #define TEXT_HEIGHT 60
 #define MS_IN_SECOND 1000 * 1000
+#define PORT 1337
 #define STAT_HEIGHT HEIGHT
 
 char stats[99] = {0};
@@ -41,6 +42,7 @@ typedef struct player_t {
     SDL_bool is_active;
     SDL_Texture* texture;
     SDL_bool can_kill_beast;
+    size_t id_num;
 } player;
 
 enum direction {
@@ -61,39 +63,41 @@ typedef struct beast_t {
 
 struct gameinfo_t {
     beast beast;
-    player player1;
-    player player2;
-    player player3;
-    player player4;
+    player players[4];
     int treasures_remaining;
     SDL_Point campsite_pos;
 
-} game_info;\
+} game_info;
 
 struct player_name_t {
     char name[99];
     SDL_Color c;
 };
 
+typedef struct {
+    SDL_Event e;
+    size_t key;
+}data_packet;
+
 #define CHECK_PLAYER_COORDINATE(N) \
 (game_info.beast.pos.N ==      \
-game_info.player1.pos.N||      \
+game_info.players[0].pos.N||      \
 game_info.beast.pos.N ==      \
-game_info.player2.pos.N||        \
+game_info.players[1].pos.N||        \
 game_info.beast.pos.N ==      \
-game_info.player3.pos.N||        \
+game_info.players[2].pos.N||        \
 game_info.beast.pos.N ==      \
-game_info.player4.pos.N)
+game_info.players[3].pos.N)
 
 #define CHECK_PLAYER_SEEN_COORDINATE(observed, N) \
 (observed.N ==      \
-game_info.player1.pos.N||      \
+game_info.players[0].pos.N||      \
 observed.N ==      \
-game_info.player2.pos.N||        \
+game_info.players[1].pos.N||        \
 observed.N ==      \
-game_info.player3.pos.N||        \
+game_info.players[2].pos.N||        \
 observed.N ==      \
-game_info.player4.pos.N)
+game_info.players[3].pos.N)
 
 #define CHECK_BEAST_COLLISION(player) \
 (player->pos.y == game_info.beast.pos.y&&player->pos.x == game_info.beast.pos.x)

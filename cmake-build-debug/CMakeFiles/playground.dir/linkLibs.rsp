@@ -1,0 +1,1 @@
+  -LD:/libs/SDL/lib  -LD:/libs/SDL2_ttf/lib/x64  -LD:/libs/SDL_net/lib  -LD:/libs/pthreads/lib/x64  -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_net -lpthread -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
